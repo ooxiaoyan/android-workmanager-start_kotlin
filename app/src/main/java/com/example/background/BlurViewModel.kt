@@ -54,11 +54,18 @@ class BlurViewModel(application: Application) : ViewModel() {
         )
 
         // 添加 WorkRequest 模糊图片
-        val blurRequest = OneTimeWorkRequest.Builder(BlurWorker::class.java)
-            .setInputData(createInputDataForUri())
-            .build()
+        // 添加对图片进行不同程度的模糊处理的功能
+        for (i in 0 until blurLevel) {
+            val blurBuilder = OneTimeWorkRequestBuilder<BlurWorker>()
 
-        continuation = continuation.then(blurRequest) // 通过调用 then() 方法向此工作请求链中添加请求对象
+            // Input the Uri if this is the first blur operation
+            // After the first blur operation the input will be the output of previous blur operations.
+            // 只有第一个 WorkRequest 需要且应该获取 URI 输入
+            if (i == 0) {
+                blurBuilder.setInputData(createInputDataForUri())
+            }
+            continuation = continuation.then(blurBuilder.build()) // 通过调用 then() 方法向此工作请求链中添加请求对象
+        }
 
         // 添加 WorkRequest 保存图片
         val save = OneTimeWorkRequest.Builder(SaveImageToFileWorker::class.java).build()
