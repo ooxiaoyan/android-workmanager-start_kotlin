@@ -73,8 +73,14 @@ class BlurViewModel(application: Application) : ViewModel() {
             continuation = continuation.then(blurBuilder.build()) // 通过调用 then() 方法向此工作请求链中添加请求对象
         }
 
+        // 创建约束条件：使用设备必须充电（工作请求只会在设备充电的情况下运行）
+        val constraints = Constraints.Builder()
+            .setRequiresCharging(true)
+            .build()
+
         // 添加 WorkRequest 保存图片
         val save = OneTimeWorkRequest.Builder(SaveImageToFileWorker::class.java)
+            .setConstraints(constraints) // 设置约束条件，当设备不充电时，应会暂停执行 SaveImageToFileWorker，直到您将设备插入充电。
             .addTag(TAG_OUTPUT) // 为 WorkRequest 添加标记
             .build()
 
@@ -82,6 +88,12 @@ class BlurViewModel(application: Application) : ViewModel() {
 
         // Actually start the work
         continuation.enqueue()
+    }
+
+    // 按唯一链名称取消工作，因为想要取消链中的所有工作，而不仅仅是某个特定步骤。
+    // 由于 WorkState 不再处于“FINISHED”（已完成）状态，因此工作取消后，只有“GO”（开始）按钮。
+    internal fun cancelWork() {
+        workManager.cancelUniqueWork(IMAGE_MANIPULATION_WORK_NAME)
     }
 
     /**
