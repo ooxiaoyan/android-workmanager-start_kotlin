@@ -16,6 +16,7 @@
 
 package com.example.background
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import androidx.activity.viewModels
@@ -40,6 +41,14 @@ class BlurActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         binding.goButton.setOnClickListener { viewModel.applyBlur(blurLevel) }
+        binding.seeFileButton.setOnClickListener {
+            viewModel.outputUri?.let { currentUri ->
+                val actionView = Intent(Intent.ACTION_VIEW, currentUri)
+                actionView.resolveActivity(packageManager)?.run {
+                    startActivity(actionView)
+                }
+            }
+        }
         viewModel.outputWorkInfos.observe(this, workInfosObserver())
     }
 
@@ -63,6 +72,15 @@ class BlurActivity : AppCompatActivity() {
             if (workInfo.state.isFinished) {
                 // 隐藏 Cancel Work（取消工作）按钮和进度条，并显示 Go（开始）按钮
                 showWorkFinished()
+
+                // 每个 WorkInfo 还有一个 getOutputData 方法，该方法可让您获取包含最终保存的图片的输出 Data 对象
+                val outputImageUri = workInfo.outputData.getString(KEY_IMAGE_URI)
+
+                // 每当有经过模糊处理的图片准备就绪可供显示时，便在屏幕上显示 See File（查看文件）按钮
+                if (!outputImageUri.isNullOrEmpty()) {
+                    viewModel.setOutputUri(outputImageUri)
+                    binding.seeFileButton.visibility = View.VISIBLE
+                }
             } else {
                 // 隐藏 Go（开始）按钮并显示 Cancel Work（取消工作）按钮和进度条
                 showWorkInProgress()
