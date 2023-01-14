@@ -17,6 +17,9 @@ class BlurWorker(context: Context, params: WorkerParameters) : Worker(context, p
         val appContext = applicationContext
         val resourceUri = inputData.getString(KEY_IMAGE_URI) // 获取从 Data 对象传入的 URI
         makeStatusNotification("开始图片模糊处理", appContext)
+
+        sleep() // 使用 WorkerUtils 类中定义的 sleep() 方法减慢工作速度，以便更轻松地做到查看每个 WorkRequest 的启动情况
+
         return try {
             if (TextUtils.isEmpty(resourceUri)) {
                 Log.e(TAG, "Invalid input uri")

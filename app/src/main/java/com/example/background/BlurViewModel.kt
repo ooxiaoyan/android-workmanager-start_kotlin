@@ -23,9 +23,12 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.work.Data
+import androidx.work.OneTimeWorkRequest
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import com.example.background.workers.BlurWorker
+import com.example.background.workers.CleanupWorker
+import com.example.background.workers.SaveImageToFileWorker
 
 // 此视图模型用于存储显示 BlurActivity 所需的所有数据，也将是您使用 WorkManager 启动后台工作的类。
 class BlurViewModel(application: Application) : ViewModel() {
@@ -44,11 +47,26 @@ class BlurViewModel(application: Application) : ViewModel() {
      * @param blurLevel The amount to blur the image
      */
     internal fun applyBlur(blurLevel: Int) {
-        val workRequest = OneTimeWorkRequestBuilder<BlurWorker>()
+        // 创建 WorkRequest 链
+        // 添加 WorkRequest 清理临时文件
+        var continuation = workerManager.beginWith(
+            OneTimeWorkRequest.from(CleanupWorker::class.java)
+        )
+
+        // 添加 WorkRequest 模糊图片
+        val blurRequest = OneTimeWorkRequest.Builder(BlurWorker::class.java)
             .setInputData(createInputDataForUri())
             .build()
-        // 使用 enqueue() 方法将 WorkRequest 提交到 WorkManager
-        workerManager.enqueue(workRequest)
+
+        continuation = continuation.then(blurRequest) // 通过调用 then() 方法向此工作请求链中添加请求对象
+
+        // 添加 WorkRequest 保存图片
+        val save = OneTimeWorkRequest.Builder(SaveImageToFileWorker::class.java).build()
+
+        continuation = continuation.then(save)
+
+        // Actually start the work
+        continuation.enqueue()
     }
 
     /**
