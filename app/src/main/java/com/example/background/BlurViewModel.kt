@@ -22,10 +22,7 @@ import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import androidx.work.Data
-import androidx.work.OneTimeWorkRequest
-import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.WorkManager
+import androidx.work.*
 import com.example.background.workers.BlurWorker
 import com.example.background.workers.CleanupWorker
 import com.example.background.workers.SaveImageToFileWorker
@@ -36,7 +33,7 @@ class BlurViewModel(application: Application) : ViewModel() {
     internal var imageUri: Uri? = null
     internal var outputUri: Uri? = null
 
-    private val workerManager = WorkManager.getInstance(application)
+    private val workManager = WorkManager.getInstance(application)
 
     init {
         imageUri = getImageUri(application.applicationContext)
@@ -49,9 +46,14 @@ class BlurViewModel(application: Application) : ViewModel() {
     internal fun applyBlur(blurLevel: Int) {
         // 创建 WorkRequest 链
         // 添加 WorkRequest 清理临时文件
-        var continuation = workerManager.beginWith(
-            OneTimeWorkRequest.from(CleanupWorker::class.java)
-        )
+        // beginUniqueWork 确保工作链是唯一的（一次只会对一张图片进行模糊处理）
+        //   参数-uniqueWorkName：唯一的 String 名称。这会命名整个工作请求链，以便您一起引用和查询这些请求
+        //   参数-existingWorkPolicy：选项包括 REPLACE、KEEP 或 APPEND
+        var continuation = workManager.beginUniqueWork(
+                IMAGE_MANIPULATION_WORK_NAME,
+                ExistingWorkPolicy.REPLACE, // 因为如果用户在当前图片完成之前决定对另一张图片进行模糊处理，我们需要停止当前图片并开始对新图片进行模糊处理。
+                OneTimeWorkRequest.from(CleanupWorker::class.java)
+            )
 
         // 添加 WorkRequest 模糊图片
         // 添加对图片进行不同程度的模糊处理的功能
