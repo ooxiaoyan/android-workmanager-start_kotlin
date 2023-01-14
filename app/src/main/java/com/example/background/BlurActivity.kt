@@ -20,6 +20,8 @@ import android.os.Bundle
 import android.view.View
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.Observer
+import androidx.work.WorkInfo
 import com.example.background.databinding.ActivityBlurBinding
 
 // 此 activity 用于显示图片以及添加用于选择模糊程度的单选按钮。
@@ -38,6 +40,34 @@ class BlurActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         binding.goButton.setOnClickListener { viewModel.applyBlur(blurLevel) }
+        viewModel.outputWorkInfos.observe(this, workInfosObserver())
+    }
+
+    private fun workInfosObserver(): Observer<List<WorkInfo>> {
+        return Observer { listOfWorkInfo ->
+
+            // Note that these next few lines grab a single WorkInfo if it exists
+            // This code could be in a Transformation in the ViewModel; they are included here
+            // so that the entire process of displaying a WorkInfo is in one location.
+
+            // If there are no matching work info, do nothing
+            if (listOfWorkInfo.isNullOrEmpty()) {
+                return@Observer
+            }
+
+            // 获取列表中的第一个 WorkInfo
+            // 只有一个标记为 TAG_OUTPUT 的 WorkInfo，因为我们的工作链是唯一的
+            val workInfo = listOfWorkInfo[0]
+
+            // 检查工作状态是否为已完成
+            if (workInfo.state.isFinished) {
+                // 隐藏 Cancel Work（取消工作）按钮和进度条，并显示 Go（开始）按钮
+                showWorkFinished()
+            } else {
+                // 隐藏 Go（开始）按钮并显示 Cancel Work（取消工作）按钮和进度条
+                showWorkInProgress()
+            }
+        }
     }
 
     /**
