@@ -33,6 +33,10 @@ class BlurViewModel(application: Application) : ViewModel() {
 
     internal var imageUri: Uri? = null
     internal var outputUri: Uri? = null
+    // 您可以通过获取保留 WorkInfo 对象的 LiveData 来获取任何 WorkRequest 的状态。
+    // WorkInfo 是一个包含 WorkRequest 当前状态详细信息的对象，其中包括：
+    // 工作是否为 BLOCKED、CANCELLED、ENQUEUED、FAILED、RUNNING 或 SUCCEEDED。
+    // 如果 WorkRequest 完成，则为工作的任何输出数据。
     internal val outputWorkInfos: LiveData<List<WorkInfo>>
 
     private val workManager = WorkManager.getInstance(application)
